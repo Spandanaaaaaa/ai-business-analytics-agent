@@ -1,8 +1,8 @@
-streamlit
-pandas
-numpy
-openpyxl
-scikit-learn
-plotly
-joblib
-python-dotenv
+streamlit>=1.35
+pandas>=2.0
+numpy>=1.24
+openpyxl>=3.1
+scikit-learn>=1.3
+plotly>=5.18
+joblib>=1.3
+python-dotenv>=1.0
