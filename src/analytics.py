@@ -2,37 +2,23 @@ import pandas as pd
 
 def calculate_kpis(df):
     kpis = {}
-
-    if "Sales" in df.columns:
-        kpis["Total Sales"] = df["Sales"].sum()
-        kpis["Average Sales"] = df["Sales"].mean()
-
-    if "Profit" in df.columns:
-        kpis["Total Profit"] = df["Profit"].sum()
-        kpis["Average Profit"] = df["Profit"].mean()
-
-    if "Quantity" in df.columns:
-        kpis["Total Quantity"] = df["Quantity"].sum()
-
-    if "Sales" in df.columns and len(df):
-        kpis["Average Order Value"] = df["Sales"].sum() / len(df)
-
+    sales_col = "Sales" if "Sales" in df.columns else ("Revenue" if "Revenue" in df.columns else None)
+    if sales_col:
+        kpis["Total Sales / Revenue"] = pd.to_numeric(df[sales_col], errors="coerce").sum()
+        kpis["Average Sales / Revenue"] = pd.to_numeric(df[sales_col], errors="coerce").mean()
+        kpis["Average Order Value"] = pd.to_numeric(df[sales_col], errors="coerce").sum() / max(len(df), 1)
+    for col, label in [("Profit", "Total Profit"), ("Quantity", "Total Quantity")]:
+        if col in df.columns:
+            kpis[label] = pd.to_numeric(df[col], errors="coerce").sum()
+    if "Profit" in df.columns and sales_col:
+        total_sales = pd.to_numeric(df[sales_col], errors="coerce").sum()
+        kpis["Profit Margin (%)"] = (pd.to_numeric(df["Profit"], errors="coerce").sum() / total_sales * 100) if total_sales else 0
     return kpis
 
 def create_daily_summary(df):
-    if "Date" not in df.columns:
+    if "Date" not in df.columns or not pd.api.types.is_datetime64_any_dtype(df["Date"]):
         return pd.DataFrame()
-
-    cols = {}
-    if "Sales" in df.columns:
-        cols["Sales"] = ("Sales", "sum")
-    if "Profit" in df.columns:
-        cols["Profit"] = ("Profit", "sum")
-    if "Quantity" in df.columns:
-        cols["Quantity"] = ("Quantity", "sum")
-
-    if not cols:
+    measures = [c for c in ["Sales", "Revenue", "Profit", "Quantity"] if c in df.columns]
+    if not measures:
         return pd.DataFrame()
-
-    daily = df.groupby("Date").agg(**cols).reset_index()
-    return daily
+    return df.dropna(subset=["Date"]).groupby("Date", as_index=False)[measures].sum().sort_values("Date")
